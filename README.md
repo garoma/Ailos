@@ -6,6 +6,8 @@ Consulta de saldo bancário
 
 Movimentação financeira (débito/crédito) com validação de saldo
 
+transferência entre Contas 
+
 Controle de idempotência para evitar duplicidade de transações
 
 🧱 Arquitetura e Organização do Projeto
