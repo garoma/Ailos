@@ -1,0 +1,67 @@
+name: CI/CD .NET 8
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔧 Setup .NET SDK
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: 📦 Restore dependencies
+        run: dotnet restore
+
+      - name: 🏗️ Build solution
+        run: dotnet build --no-restore --configuration Release
+
+      - name: 🚦 Run tests
+        run: dotnet test --no-build --configuration Release --verbosity normal
+
+      - name: 📂 Publish artifact
+        if: success()
+        run: |
+          dotnet publish Questao5/Questao5.csproj \
+            --no-build --configuration Release \
+            --output ./publish
+
+      - name: 📤 Upload publish artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: webapi-artifact
+          path: publish
+
+  deploy-azure:
+    needs: build-and-test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: 🔓 Login via Azure CLI
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: 📂 Download artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: webapi-artifact
+          path: publish
+
+      - name: 🚀 Deploy to Azure Web App
+        uses: azure/webapps-deploy@v2
+        with:
+          app-name: ${{ secrets.AZURE_WEBAPP_NAME }}
+          package: publish
